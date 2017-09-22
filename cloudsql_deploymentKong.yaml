@@ -1,0 +1,67 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: crmgw
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: crmgw
+    spec:
+      containers:
+        - image: us.gcr.io/para-dev/kong:0.11Alpine
+          name: crmgw
+          env:
+            - name: KONG_DB_HOST
+              # Connect to the SQL proxy over the local network on a fixed port.
+              # Change the [PORT] to the port number used by your database
+              # (e.g. 3306).
+              value: 127.0.0.1:3306
+            # These secrets are required to start the pod.
+            # [START cloudsql_secrets]
+            - name: KONG_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cloudsql-db-credentials
+                  key: password
+            - name: KONG_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cloudsql-db-credentials
+                  key: username
+            # [END cloudsql_secrets]
+          ports:
+            - containerPort: 8000
+              name: crmgw
+        # Change [INSTANCE_CONNECTION_NAME] here to include your GCP
+        # project, the region of your Cloud SQL instance and the name
+        # of your Cloud SQL instance. The format is
+        # $PROJECT:$REGION:$INSTANCE
+        # Insert the port number used by your database.
+        # [START proxy_container]
+        - image: gcr.io/cloudsql-docker/gce-proxy:1.09
+          name: crmgw-proxy
+          command: ["/cloud_sql_proxy", "--dir=/cloudsql",
+                    "-instances=para-dev:us-central1:dev-crmgw=tcp:3306",
+                    "-credential_file=/secrets/cloudsql/credentials.json"]
+          volumeMounts:
+            - name: cloudsql-instance-credentials
+              mountPath: /secrets/cloudsql
+              readOnly: true
+            - name: ssl-certs
+              mountPath: /etc/ssl/certs
+            - name: cloudsql
+              mountPath: /cloudsql
+        # [END proxy_container]
+      # [START volumes]
+      volumes:
+        - name: cloudsql-instance-credentials
+          secret:
+            secretName: cloudsql-instance-credentials
+        - name: ssl-certs
+          hostPath:
+            path: /etc/ssl/certs
+        - name: cloudsql
+          emptyDir:
+      # [END volumes]
