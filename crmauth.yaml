@@ -1,0 +1,81 @@
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: crmauth
+spec:
+  type: LoadBalancer
+  loadBalancerSourceRanges:
+  - 0.0.0.0/0
+  ports:
+  - name: crmauth-proxy
+    port: 4200
+    targetPort: 4200
+    nodePort: 30242
+    protocol: TCP
+  - name: crmauth-proxy-ssl
+    port: 4243
+    targetPort: 4243
+    nodePort: 30243
+    protocol: TCP
+  selector:
+    app: crmauth
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: crmauth
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: crmauth
+        app: crmauth
+    spec:
+      containers:
+      - name: crmauth
+        image: us.gcr.io/para-dev/crmauth:1.0.2
+#        env:
+#          - name: POSTGRES_USER
+#            value: kong
+
+#-------------------------------------------------------------------------
+#	For this parameter, here are some valid values
+#
+#            value: 107.178.222.38
+#            value: sqlproxy-service-crmgwdata-dev
+#            value: para-dev:us-central1:crmgwdata=tcp:0.0.0.0:3306
+#-------------------------------------------------------------------------
+#          - name: POSTGRES_HOSTNAME
+#            value: sqlproxy-service-crmgwdata-dev
+
+
+#-------------------------------------------------------------------------
+#	For this parameter, here are some valid values
+#
+#           "KONG_CLUSTER_ADVERTISE=YOUR_HOST_IP_ADDR:7946" \
+#	    "KONG_CLUSTER_LISTEN=YOUR_DOCKER_CONTAINER_INTERNAL_IP_ADDR:7946" \
+#
+#            value: 35.184.90.216:7946
+#                fieldPath: status.podIP
+#        command: [ "/bin/sh", "-c", "KONG_CLUSTER_ADVERTISE=$(KONG_HOST_IP):7946 KONG_NGINX_DAEMON='off' kong start && env" ]
+#-------------------------------------------------------------------------
+#          - name: KONG_CLUSTER_ADVERTISE
+#            value: 35.184.90.216:7946
+#          - name: KONG_CLUSTER_LISTEN
+#            value: 10.23.249.138:7946
+
+        ports:
+        - name: proxy
+          containerPort: 4200
+          protocol: TCP
+        - name: proxy-ssl
+          containerPort: 4243
+          protocol: TCP
+
+
+
+
