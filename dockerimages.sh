@@ -63,12 +63,12 @@ gcloud docker -- push us.gcr.io/para-dev/pgadmin:4.0
 
 
 #	Create GCloud deployment and service yaml and deploy with kubectl
-kubectl create -f gfkong_crmgwdata.yaml
-kubectl create -f pgadmin.yaml
+# kubectl create -f gfkong_crmgwdata.yaml
+#  kubectl create -f pgadmin.yaml
 
 #	Expose the services (external IP)
-kubectl expose service crmgw --port=8000 --target-port=30000 --name=crmgw
-kubectl expose service crmgw-admin --port=8001 --target-port=30001 --name=crmgw-admin
+# kubectl expose service crmgw --port=8000 --target-port=30000 --name=crmgw
+# kubectl expose service crmgw-admin --port=8001 --target-port=30001 --name=crmgw-admin
 
 
 
