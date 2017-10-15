@@ -1,0 +1,102 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: crmgw-dns
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: crmgw-dns
+        app: crmgw-dns
+    spec:
+      containers:
+      - image: us.gcr.io/para-dev/gfkong:0.8
+        name: kong
+        ports:
+        - name: admin
+          containerPort: 8001
+          protocol: TCP
+        - name: proxy
+          containerPort: 8000
+          protocol: TCP
+        - name: proxy-ssl
+          containerPort: 8443
+          protocol: TCP
+        - name: admin-ssl
+          containerPort: 8444
+          protocol: TCP
+        - name: surf-tcp
+          containerPort: 7946
+          protocol: TCP
+        - name: surf-udp
+          containerPort: 7946
+          protocol: UDP
+        # Change [INSTANCE_CONNECTION_NAME] here to include your GCP
+        # project, the region of your Cloud SQL instance and the name
+        # of your Cloud SQL instance. The format is
+        # $PROJECT:$REGION:$INSTANCE
+        # Insert the port number used by your database.
+        # [START proxy_container]
+        - image: gcr.io/cloudsql-docker/gce-proxy:1.09
+          name: crmgw-proxy
+          command: ["/cloud_sql_proxy", "--dir=/cloudsql",
+                    "-instances=para-dev:us-central1:crmgwdata=tcp:3306",
+                    "-credential_file=/secrets/cloudsql/credentials.json"]
+          volumeMounts:
+            - name: cloudsql-instance-credentials
+              mountPath: /secrets/cloudsql
+              readOnly: true
+            - name: ssl-certs
+              mountPath: /etc/ssl/certs
+            - name: cloudsql
+              mountPath: /cloudsql
+        # [END proxy_container]
+      # [START volumes]
+      volumes:
+        - name: cloudsql-instance-credentials
+          secret:
+            secretName: cloudsql-instance-credentials
+        - name: ssl-certs
+          hostPath:
+            path: /etc/ssl/certs
+        - name: cloudsql
+          emptyDir:
+      # [END volumes]        
+
+      env:
+        - name: POSTGRES_USER
+          value: kong
+        - name: POSTGRES_PASSWORD
+          value: kong
+        - name: POSTGRES_NAME
+          value: crmgwdata
+        - name: POSTGRES_PORT
+          value: "3306"
+
+#-------------------------------------------------------------------------
+#	For this parameter, here are some valid values
+#
+#            value: 107.178.222.38
+#            value: sqlproxy-service-crmgwdata-dev
+#            value: para-dev:us-central1:crmgwdata=tcp:0.0.0.0:3306
+#-------------------------------------------------------------------------
+        - name: POSTGRES_HOSTNAME
+          value: sqlproxy-service-crmgwdata-dev
+
+
+#-------------------------------------------------------------------------
+#	For this parameter, here are some valid values
+#
+#           "KONG_CLUSTER_ADVERTISE=YOUR_HOST_IP_ADDR:7946" \
+#	    "KONG_CLUSTER_LISTEN=YOUR_DOCKER_CONTAINER_INTERNAL_IP_ADDR:7946" \
+#
+#            value: 35.184.90.216:7946
+#                fieldPath: status.podIP
+#        command: [ "/bin/sh", "-c", "KONG_CLUSTER_ADVERTISE=$(KONG_HOST_IP):7946 KONG_NGINX_DAEMON='off' kong start && env" ]
+#-------------------------------------------------------------------------
+#          - name: KONG_CLUSTER_ADVERTISE
+#            value: 35.184.90.216:7946
+#          - name: KONG_CLUSTER_LISTEN
+#            value: 10.23.249.138:7946
+

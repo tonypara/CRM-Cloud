@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: crmauth
+spec:
+  type: LoadBalancer
+  loadBalancerSourceRanges:
+  - 0.0.0.0/0
+  ports:
+  - name: crmauth-proxy
+    port: 4200
+    targetPort: 4200
+    nodePort: 30242
+    protocol: TCP
+  - name: crmauth-proxy-ssl
+    port: 4243
+    targetPort: 4243
+    nodePort: 30243
+    protocol: TCP
+  selector:
+    app: crmauth
+
